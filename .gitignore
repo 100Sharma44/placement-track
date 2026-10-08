@@ -1,0 +1,14 @@
+# Environment files can contain database passwords.
+.env
+
+# Prevent accidentally committing local files with a percent sign in the name.
+backend/*%*
+
+# Python
+__pycache__/
+*.py[cod]
+backend/.venv/
+
+# Node / Vite
+frontend/node_modules/
+frontend/dist/
