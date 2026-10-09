@@ -195,4 +195,3 @@ Useful next steps:
 - Add pagination and automated API tests.
 - Add database migrations and CSV export.
 
-For a short project introduction, common questions, and a code walkthrough, see the [interview guide](docs/INTERVIEW_GUIDE.md).
