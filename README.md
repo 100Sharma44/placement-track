@@ -1,175 +1,198 @@
-# PlacementTrack — Campus Placement & Job Application Tracker
+# PlacementTrack
+### Campus placement and job application tracker
 
-PlacementTrack is a simple full-stack application for college students to track the companies and roles they apply to during campus placements. It keeps applications, interview progress, offers, and basic placement analytics in one place.
+PlacementTrack helps students keep company applications, interview dates, and outcomes in one place. It is a small full-stack project demonstrating CRUD operations, REST APIs, input validation, relational storage, and a dashboard.
 
-## Features
+**Problem:** During placements, applications and interview details can become scattered across notes and spreadsheets. This app provides a searchable record of each application and a summary of its current status.
 
-- Add, view, edit, and delete placement applications
-- Search by company name and filter by status or job type
-- Track application dates, interview dates, location, package, and notes
-- Dashboard counts for applications, assessments, interviews, offers, and rejections
-- Bar chart grouped by application status
-- Simple REST API with validation and PostgreSQL storage
+[Interview guide](docs/INTERVIEW_GUIDE.md) · [Two-minute demo](#two-minute-demo) · [Local setup](#run-locally)
 
-## Tech Stack
+## What it does
 
-- Frontend: React, Vite, React Router, Recharts, plain CSS
-- Backend: Python, FastAPI, SQLAlchemy, Pydantic
-- Database: PostgreSQL
+- Add, view, edit, and delete applications.
+- Search company names and combine status and job-type filters.
+- Store role, application date, optional interview date, location, package in LPA, and notes.
+- Show total applications and counts for Online Assessment, Interview, Offer, and Rejected.
+- Display a bar chart of applications by current status.
 
-## Architecture
+This version is a local prototype with a shared dataset and no login. It stores one current status per application; it does not retain a history of recruitment stages.
 
-```text
-User
- ↓
-React Frontend
- ↓
-REST API / HTTP
- ↓
-FastAPI Backend
- ↓
-PostgreSQL Database
-```
+## Tech stack
 
-The frontend makes HTTP requests to FastAPI. FastAPI validates the data with Pydantic, uses SQLAlchemy to read/write PostgreSQL, and returns JSON to the frontend.
+| Technology | Role in this project |
+| --- | --- |
+| React + JavaScript | Pages, form state, loading states, and reusable components |
+| React Router | Navigation between dashboard, list, add, and edit pages |
+| Vite | Frontend development server and production build |
+| Recharts + CSS | Status bar chart and interface styling |
+| Python + FastAPI | HTTP endpoints and automatic API documentation |
+| Pydantic | Request validation and response schemas |
+| SQLAlchemy | Application table mapping, queries, and database sessions |
+| PostgreSQL + psycopg | Persistent relational storage and database driver |
 
-## Project Structure
+## How an application is saved
 
-```text
-placement-track/
-├── backend/
-│   ├── app/
-│   │   ├── main.py          # FastAPI setup and CORS
-│   │   ├── database.py      # PostgreSQL connection and session
-│   │   ├── models.py        # SQLAlchemy Application table
-│   │   ├── schemas.py       # Request/response validation models
-│   │   └── routes/          # Application and analytics endpoints
-│   ├── requirements.txt
-│   └── .env.example
-├── frontend/
-│   ├── src/
-│   │   ├── components/
-│   │   ├── pages/
-│   │   └── services/api.js  # API calls in one small file
-│   ├── package.json
-│   └── .env.example
-└── README.md
-```
+1. The student completes the React form; required fields are checked by the browser.
+2. The form converts blank optional values to `null` and package input to a number.
+3. `services/api.js` sends JSON using `fetch` to `POST /applications`.
+4. FastAPI validates the request with Pydantic.
+5. SQLAlchemy adds the record, commits the transaction, and refreshes it to read its generated ID.
+6. The API returns the saved record with HTTP `201`; React navigates to the applications list.
 
-## Database Model
+Editing first loads the record by ID and then submits its fields with `PUT`. Deleting asks for browser confirmation and sends `DELETE`.
 
-`Application` stores: `id`, `company_name`, `role`, `job_type`, `application_status`, `application_date`, optional `interview_date`, `location`, `package_lpa`, and `notes`, plus automatic `created_at` and `updated_at` timestamps.
+## Project map
 
-The initial job types are Internship, Full-Time, and Internship + PPO. The initial statuses are Applied, Online Assessment, Interview, Offer, and Rejected. They are simple lists in `backend/app/schemas.py` and `frontend/src/components/ApplicationForm.jsx`, so they can be adjusted later.
+| File or directory | Start here to understand |
+| --- | --- |
+| [ApplicationForm.jsx](frontend/src/components/ApplicationForm.jsx) | Shared add/edit form and input conversion |
+| [api.js](frontend/src/services/api.js) | Frontend requests and error handling |
+| [Applications.jsx](frontend/src/pages/Applications.jsx) | List, filters, and deletion |
+| [Dashboard.jsx](frontend/src/pages/Dashboard.jsx) | Dashboard cards and chart |
+| [main.py](backend/app/main.py) | App setup, CORS, router registration, table creation |
+| [database.py](backend/app/database.py) | Environment configuration and request-scoped sessions |
+| [models.py](backend/app/models.py) | SQLAlchemy Application table |
+| [schemas.py](backend/app/schemas.py) | Validation and allowed status/job-type values |
+| [applications.py](backend/app/routes/applications.py) | CRUD endpoints and filter queries |
+| [analytics.py](backend/app/routes/analytics.py) | Status grouping, counts, and percentages |
 
-## API Endpoints
+## Data and analytics
 
-| Method | Endpoint | Purpose |
+The `applications` table stores an integer primary key, company name, role, job type, current status, application date, optional interview date/location/package/notes, and automatic creation/update timestamps.
+
+**Job types:** Internship, Full-Time, Internship + PPO.
+**Statuses:** Applied, Online Assessment, Interview, Offer, Rejected.
+
+The backend groups rows by current status with SQL `GROUP BY`. Missing categories appear as zero. Percentages are rounded to one decimal place:
+
+- Interview rate = currently Interview ÷ total applications × 100.
+- Offer rate = currently Offer ÷ total applications × 100.
+- Both are zero when the database is empty.
+
+**Interpretation:** Moving a record from Interview to Offer reduces the Interview count. These are current-status shares, not historical conversion rates.
+
+## API reference
+
+| Method | Endpoint | Result |
 | --- | --- | --- |
-| POST | `/applications` | Create an application |
-| GET | `/applications` | List applications; supports `status`, `company`, and `job_type` queries |
-| GET | `/applications/{id}` | Get one application |
-| PUT | `/applications/{id}` | Update an application |
-| DELETE | `/applications/{id}` | Delete an application |
-| GET | `/analytics` | Get dashboard counts and rates |
+| GET | `/` | API running message |
+| POST | `/applications` | Create; `201` and saved record |
+| GET | `/applications` | List, newest application date first, then ID |
+| GET | `/applications/{id}` | One record or `404` |
+| PUT | `/applications/{id}` | Update; requires all mandatory application fields |
+| DELETE | `/applications/{id}` | Delete; `204` with no response body |
+| GET | `/analytics` | Counts, percentages, and status distribution |
 
-## Run Locally
+List queries support `company` (case-insensitive substring), `status`, and `job_type`. Supplied filters are combined with AND.
 
-Prerequisites: Python 3.10+, Node.js 18+, npm, and a running PostgreSQL server.
+Example: `/applications?company=demo&status=Interview&job_type=Full-Time`
 
-### 1. Create the PostgreSQL database
+Pydantic rejects invalid payloads with `422`, including unsupported statuses/job types and negative packages. Missing IDs return `404` for read, update, and delete.
 
-Ensure PostgreSQL is running, then create an empty database:
+## Run locally
+
+Prerequisites: Python 3.10+, **Node.js 22.12+ (or 20.19+ in the Node 20 line)**, npm, and PostgreSQL. These Node minimums match the checked-in frontend lockfile.
+
+### 1. Clone and create the database
+
+```bash
+git clone https://github.com/100Sharma44/placement-track.git
+cd placement-track
+```
+
+In your PostgreSQL SQL console, using an account allowed to create databases:
 
 ```sql
 CREATE DATABASE placement_track;
 ```
 
-### 2. Run the backend
+### 2. Start the backend
+
+From the repository root, on macOS/Linux:
 
 ```bash
 cd backend
-python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
 cp .env.example .env
 ```
 
-Edit `.env` and add your PostgreSQL username/password. Then start the API:
+On Windows PowerShell, use `python -m venv .venv`, `.\.venv\Scripts\Activate.ps1`, and `Copy-Item .env.example .env`.
 
-```bash
-uvicorn app.main:app --reload
+Edit `backend/.env` with your own local PostgreSQL credentials:
+
+```dotenv
+DATABASE_URL=postgresql+psycopg://postgres:your_password@localhost:5432/placement_track
 ```
 
-The API runs at `http://localhost:8000`. Interactive API documentation is at `http://localhost:8000/docs`. Tables are created automatically on backend startup for this version.
+Percent-encode reserved characters in the username/password if necessary. Keep real credentials out of Git.
 
-### 3. Run the frontend
+Start from the `backend` directory:
 
-In a second terminal:
+```bash
+uvicorn app.main:app --reload --port 8000
+```
+
+API: http://localhost:8000
+Interactive API docs: http://localhost:8000/docs
+
+Tables are created automatically when the app loads. PostgreSQL must already be running and the database must exist.
+
+### 3. Start the frontend
+
+In a second terminal, from the repository root:
 
 ```bash
 cd frontend
-npm install
+npm ci
 cp .env.example .env
-npm run dev
+npm run dev -- --port 5173 --strictPort
 ```
 
-Open the address Vite prints (usually `http://localhost:5173`). The default frontend URL already points to the local backend. Change `VITE_API_URL` in `frontend/.env` only if your backend uses another address.
+On Windows, replace `cp` with `Copy-Item`. Open http://localhost:5173. The example sets `VITE_API_URL=http://localhost:8000`.
 
-## Screenshots
+Use port 5173 because backend CORS currently permits only `http://localhost:5173` and `http://127.0.0.1:5173`. Restart Vite after editing frontend environment values.
 
-Add dashboard and applications-table screenshots here after running the project.
+To check the production build:
 
-## Future Improvements
+```bash
+npm run build
+```
 
-- User login so each student sees only their data
-- Pagination for very large application lists
-- Export applications to CSV
-- Calendar view for interviews
-- Automated tests and database migrations
+### Troubleshooting
 
-## Interview Explanation
+| Symptom | Check |
+| --- | --- |
+| Backend fails during startup | PostgreSQL is running, database exists, and DATABASE_URL credentials are correct |
+| DATABASE_URL is not set | Copy backend/.env.example to backend/.env and run from backend/ |
+| Frontend cannot reach API | Backend is on port 8000; VITE_API_URL is correct |
+| CORS error | Open frontend on one of the allowed port-5173 origins |
+| npm reports an unsupported engine | Use the Node version range above and install with npm ci |
 
-### What problem does this solve?
+## Two-minute demo
 
-It gives a student one dashboard for tracking every campus-placement application instead of using scattered notes or spreadsheets.
+Use fictional applications so the demo does not expose personal data.
 
-### How do frontend and backend communicate?
+1. Open the empty dashboard and explain the problem.
+2. Add **DemoTech / Software Engineer / Full-Time / Applied**, with an application date.
+3. Find it using company search and the Full-Time filter.
+4. Edit the status to Interview and add an interview date.
+5. Open the dashboard: the Interview count and percentage reflect the current record.
+6. Change the status to Offer and show the counts update on reopening the dashboard.
+7. Show `/docs` and point to the create endpoint and validation schema.
+8. Delete the demo record, then show the empty state.
 
-React calls the FastAPI endpoints using `fetch`. The request and response bodies are JSON. For example, the add form sends a `POST /applications` request.
+With one record, Interview gives a 100% interview rate; changing it to Offer gives 0% interview rate and 100% offer rate.
 
-### What are REST APIs?
+## Scope and next improvements
 
-REST APIs expose URLs for working with data using standard HTTP methods. In this project, `GET` reads, `POST` creates, `PUT` updates, and `DELETE` removes applications.
+Current limits: no authentication or per-user ownership, no status history, no pagination, no migration system, and no checked-in automated test suite. Duplicate applications are allowed. Validation does not enforce interview-date ordering or reject whitespace-only company names.
 
-### What does CRUD mean here?
+Useful next steps:
+- Add login and associate every application with a user.
+- Store stage changes separately to calculate historical conversion rates.
+- Add pagination and automated API tests.
+- Add database migrations and CSV export.
 
-CRUD means Create, Read, Update, Delete. Those are the four core operations available for an application record.
-
-### Why FastAPI?
-
-FastAPI is compact, readable, and provides automatic API documentation. Pydantic models also make it straightforward to validate incoming data.
-
-### Why React?
-
-React makes it easy to split the interface into clear pages and reusable components, while updating the screen when API data changes.
-
-### Why PostgreSQL?
-
-PostgreSQL is a reliable relational database. The data is structured as application records, making a relational table a natural fit.
-
-### What happens when a user adds an application?
-
-The form checks required browser fields, then React sends JSON to `POST /applications`. FastAPI validates it, SQLAlchemy saves a row in PostgreSQL, and the frontend redirects to the applications table.
-
-### What happens when a user edits an application?
-
-React first loads the existing record using its ID. After the user saves changes, it sends a `PUT /applications/{id}` request. The backend finds that row, updates its fields, and returns the updated JSON.
-
-### How does filtering work?
-
-The frontend sends selected filters as query parameters, such as `/applications?status=Interview`. The backend adds matching SQL conditions only for filters that were provided.
-
-### How are analytics calculated?
-
-The backend groups database rows by status and counts each group. Interview rate is `interviews / total applications × 100`; offer rate is `offers / total applications × 100`. Both return `0` when no records exist.
+For a short project introduction, common questions, and a code walkthrough, see the [interview guide](docs/INTERVIEW_GUIDE.md).
