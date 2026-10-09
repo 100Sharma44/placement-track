@@ -5,7 +5,6 @@ PlacementTrack helps students keep company applications, interview dates, and ou
 
 **Problem:** During placements, applications and interview details can become scattered across notes and spreadsheets. This app provides a searchable record of each application and a summary of its current status.
 
-[Interview guide](docs/INTERVIEW_GUIDE.md) · [Two-minute demo](#two-minute-demo) · [Local setup](#run-locally)
 
 ## What it does
 
@@ -170,20 +169,6 @@ npm run build
 | CORS error | Open frontend on one of the allowed port-5173 origins |
 | npm reports an unsupported engine | Use the Node version range above and install with npm ci |
 
-## Two-minute demo
-
-Use fictional applications so the demo does not expose personal data.
-
-1. Open the empty dashboard and explain the problem.
-2. Add **DemoTech / Software Engineer / Full-Time / Applied**, with an application date.
-3. Find it using company search and the Full-Time filter.
-4. Edit the status to Interview and add an interview date.
-5. Open the dashboard: the Interview count and percentage reflect the current record.
-6. Change the status to Offer and show the counts update on reopening the dashboard.
-7. Show `/docs` and point to the create endpoint and validation schema.
-8. Delete the demo record, then show the empty state.
-
-With one record, Interview gives a 100% interview rate; changing it to Offer gives 0% interview rate and 100% offer rate.
 
 ## Scope and next improvements
 
